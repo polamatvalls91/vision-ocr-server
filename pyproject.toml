@@ -1,0 +1,36 @@
+[project]
+name = "vision-ocr-server"
+version = "0.1.0"
+description = "Apple Vision OCR (macOS) as a small HTTP API: send a PDF or an image, get the text of each page"
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "Pol Amat" }]
+requires-python = ">=3.12"
+classifiers = [
+    "Operating System :: MacOS",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+    "Framework :: FastAPI",
+]
+dependencies = [
+    "fastapi>=0.141.1",
+    "uvicorn>=0.52.4",
+    "pypdfium2>=5.14.0",
+    "pillow>=12.3.0",
+    "ocrmac>=1.0.0; sys_platform == 'darwin'",
+]
+
+[project.urls]
+Repository = "https://github.com/polamatvalls91/vision-ocr-server"
+
+[project.scripts]
+vision-ocr-server = "vision_ocr_server.cli:main"
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.13.1",
+    "pytest>=9.1.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
