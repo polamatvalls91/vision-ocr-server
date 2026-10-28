@@ -1,6 +1,6 @@
 [project]
 name = "vision-ocr-server"
-version = "0.1.0"
+version = "0.1.1"
 description = "Apple Vision OCR (macOS) as a small HTTP API: send a PDF or an image, get the text of each page"
 readme = "README.md"
 license = "MIT"

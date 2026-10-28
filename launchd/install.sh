@@ -15,6 +15,7 @@ LOG="$HOME/Library/Logs/vision-ocr-server.log"
 command -v uv >/dev/null || { echo "uv is required: https://docs.astral.sh/uv/" >&2; exit 1; }
 uv tool install --force --quiet "$REPO"
 BIN="$(uv tool dir --bin)/vision-ocr-server"
+mkdir -p "$(dirname "$PLIST")" "$(dirname "$LOG")"
 
 xml() { printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'; }
 

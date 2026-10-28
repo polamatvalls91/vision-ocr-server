@@ -14,7 +14,7 @@ curl --data-binary @invoice.pdf http://my-mac.local:11500/ocr
 
 ```json
 {"pages": ["ACME SUPPLIES, SL\nInvoice 16645 ...\nTOTAL 138,47"], "engine": "apple-vision",
- "version": "0.1.0", "seconds": 1.12}
+ "version": "0.1.1", "seconds": 1.12}
 ```
 
 ---
@@ -56,7 +56,7 @@ small enough to read in five minutes.
 ## Run it
 
 ```sh
-uv tool install git+https://github.com/polamatvalls91/vision-ocr-server@v0.1.0
+uv tool install git+https://github.com/polamatvalls91/vision-ocr-server@v0.1.1
 vision-ocr-server                                    # localhost only, port 11500
 vision-ocr-server --host 0.0.0.0 --languages es-ES,en-US   # your LAN, Spanish first
 ```
@@ -75,7 +75,7 @@ vision-ocr-server --host 0.0.0.0 --languages es-ES,en-US   # your LAN, Spanish f
 
 | | |
 |---|---|
-| `GET /health` | `{"ok": true, "engine": "apple-vision", "version": "0.1.0"}` |
+| `GET /health` | `{"ok": true, "engine": "apple-vision", "version": "0.1.1"}` |
 | `POST /ocr` | body: the raw file (PDF, PNG, JPEG, TIFF, HEIC…). Returns `pages`: one string per page, lines top to bottom, words left to right. `422` if it's neither a PDF nor an image, `401` on a bad token. |
 
 From Python:
