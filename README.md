@@ -14,7 +14,7 @@ curl --data-binary @invoice.pdf http://my-mac.local:11500/ocr
 
 ```json
 {"pages": ["ACME SUPPLIES, SL\nInvoice 16645 ...\nTOTAL 138,47"], "engine": "apple-vision",
- "version": "0.1.1", "seconds": 1.12}
+ "version": "0.1.2", "seconds": 1.12}
 ```
 
 ---
@@ -56,7 +56,7 @@ small enough to read in five minutes.
 ## Run it
 
 ```sh
-uv tool install git+https://github.com/polamatvalls91/vision-ocr-server@v0.1.1
+uv tool install git+https://github.com/polamatvalls91/vision-ocr-server@v0.1.2
 vision-ocr-server                                    # localhost only, port 11500
 vision-ocr-server --host 0.0.0.0 --languages es-ES,en-US   # your LAN, Spanish first
 ```
@@ -75,7 +75,7 @@ vision-ocr-server --host 0.0.0.0 --languages es-ES,en-US   # your LAN, Spanish f
 
 | | |
 |---|---|
-| `GET /health` | `{"ok": true, "engine": "apple-vision", "version": "0.1.1"}` |
+| `GET /health` | `{"ok": true, "engine": "apple-vision", "version": "0.1.2"}` |
 | `POST /ocr` | body: the raw file (PDF, PNG, JPEG, TIFF, HEIC…). Returns `pages`: one string per page, lines top to bottom, words left to right. `422` if it's neither a PDF nor an image, `401` on a bad token. |
 
 From Python:
@@ -89,22 +89,28 @@ pages = httpx.post("http://my-mac.local:11500/ocr", content=open("invoice.pdf", 
 
 ## Keep it running (launchd)
 
-Vision needs a logged-in user session, so run it as a **LaunchAgent** (not a LaunchDaemon), on a Mac
-that logs in automatically and doesn't sleep.
+Two ways, same script. Apple Vision does **not** need anyone logged in, so a headless Mac can run it
+from boot like any other daemon.
 
 ```sh
 git clone https://github.com/polamatvalls91/vision-ocr-server && cd vision-ocr-server
-./launchd/install.sh --host 0.0.0.0 --languages es-ES,en-US
+./launchd/install.sh --daemon --host 0.0.0.0 --languages es-ES,en-US   # at boot, no login (asks for sudo)
+./launchd/install.sh --host 0.0.0.0 --languages es-ES,en-US            # or: only while you're logged in
 ```
 
-The script installs the tool with `uv tool`, writes `~/Library/LaunchAgents/io.github.polamatvalls91.vision-ocr-server.plist`
-with your options, starts it and checks `/health`. Run it again to update or change options.
-Logs: `~/Library/Logs/vision-ocr-server.log`.
+| Mode | Plist | Starts | Runs as |
+|---|---|---|---|
+| `--daemon` | `/Library/LaunchDaemons/io.github.polamatvalls91.vision-ocr-server.plist` | at boot | you (`UserName`) |
+| default | `~/Library/LaunchAgents/io.github.polamatvalls91.vision-ocr-server.plist` | when you log in | you |
 
-| | |
-|---|---|
-| Restart | `launchctl kickstart -k gui/$(id -u)/io.github.polamatvalls91.vision-ocr-server` |
-| Stop | `launchctl bootout gui/$(id -u)/io.github.polamatvalls91.vision-ocr-server` |
+The script installs the tool with `uv tool`, writes the plist with your options (installing one mode
+removes the other), starts it and checks `/health`. Run it again to update or change options.
+Logs: `~/Library/Logs/vision-ocr-server.log`. The Mac must not sleep (`sudo pmset -a sleep 0`).
+
+| | LaunchDaemon | LaunchAgent |
+|---|---|---|
+| Restart | `sudo launchctl kickstart -k system/io.github.polamatvalls91.vision-ocr-server` | `launchctl kickstart -k gui/$(id -u)/io.github.polamatvalls91.vision-ocr-server` |
+| Stop | `sudo launchctl bootout system/io.github.polamatvalls91.vision-ocr-server` | `launchctl bootout gui/$(id -u)/io.github.polamatvalls91.vision-ocr-server` |
 
 If other machines can't connect, the macOS firewall may be blocking Python: System Settings →
 Network → Firewall → Options. Clients on the same Mac that can't reach other LAN machines need
