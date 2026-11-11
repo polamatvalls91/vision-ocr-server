@@ -14,7 +14,7 @@ curl --data-binary @invoice.pdf http://my-mac.local:11500/ocr
 
 ```json
 {"pages": ["ACME SUPPLIES, SL\nInvoice 16645 ...\nTOTAL 138,47"], "engine": "apple-vision",
- "version": "0.1.2", "seconds": 1.12}
+ "version": "0.1.3", "seconds": 1.12}
 ```
 
 ---
@@ -56,7 +56,7 @@ small enough to read in five minutes.
 ## Run it
 
 ```sh
-uv tool install git+https://github.com/polamatvalls91/vision-ocr-server@v0.1.2
+uv tool install git+https://github.com/polamatvalls91/vision-ocr-server@v0.1.3
 vision-ocr-server                                    # localhost only, port 11500
 vision-ocr-server --host 0.0.0.0 --languages es-ES,en-US   # your LAN, Spanish first
 ```
@@ -75,7 +75,7 @@ vision-ocr-server --host 0.0.0.0 --languages es-ES,en-US   # your LAN, Spanish f
 
 | | |
 |---|---|
-| `GET /health` | `{"ok": true, "engine": "apple-vision", "version": "0.1.2"}` |
+| `GET /health` | `{"ok": true, "engine": "apple-vision", "version": "0.1.3"}` |
 | `POST /ocr` | body: the raw file (PDF, PNG, JPEG, TIFF, HEIC…). Returns `pages`: one string per page, lines top to bottom, words left to right. `422` if it's neither a PDF nor an image, `401` on a bad token. |
 
 From Python:
@@ -103,14 +103,20 @@ git clone https://github.com/polamatvalls91/vision-ocr-server && cd vision-ocr-s
 | `--daemon` | `/Library/LaunchDaemons/io.github.polamatvalls91.vision-ocr-server.plist` | at boot | you (`UserName`) |
 | default | `~/Library/LaunchAgents/io.github.polamatvalls91.vision-ocr-server.plist` | when you log in | you |
 
-The script installs the tool with `uv tool`, writes the plist with your options (installing one mode
-removes the other), starts it and checks `/health`. Run it again to update or change options.
-Logs: `~/Library/Logs/vision-ocr-server.log`. The Mac must not sleep (`sudo pmset -a sleep 0`).
+The script installs the tool with `uv tool` into its own directory, `~/Library/vision-ocr-server`
+(override with `VISION_OCR_HOME`), together with a uv-managed Python, so cleaning `~/.local/share/uv`
+or a Homebrew Python upgrade can't break the service. It then writes the plist with your options
+(installing one mode removes the other), starts it and checks `/health`. Run it again to update or
+change options. Logs: `~/Library/Logs/vision-ocr-server.log`. The Mac must not sleep
+(`sudo pmset -a sleep 0`).
 
 | | LaunchDaemon | LaunchAgent |
 |---|---|---|
 | Restart | `sudo launchctl kickstart -k system/io.github.polamatvalls91.vision-ocr-server` | `launchctl kickstart -k gui/$(id -u)/io.github.polamatvalls91.vision-ocr-server` |
 | Stop | `sudo launchctl bootout system/io.github.polamatvalls91.vision-ocr-server` | `launchctl bootout gui/$(id -u)/io.github.polamatvalls91.vision-ocr-server` |
+
+If the service failed to start (`launchctl print` shows `spawn failed`), `kickstart` can hang; rerun
+`install.sh` instead, which reloads it with `bootout` + `bootstrap`.
 
 If other machines can't connect, the macOS firewall may be blocking Python: System Settings →
 Network → Firewall → Options. Clients on the same Mac that can't reach other LAN machines need

@@ -9,19 +9,37 @@
 # session). Installing one mode removes the other. Every other argument goes to
 # `vision-ocr-server` unchanged. VISION_OCR_TOKEN, if set when you run this, is written into the
 # plist (optional; see the README's warning).
+#
+# The service gets its own self-contained install in $VISION_OCR_HOME (default
+# ~/Library/vision-ocr-server): the uv tool environment, its launcher and a uv-managed Python all
+# live there. Nothing the service runs depends on ~/.local/share/uv, ~/.local/bin or Homebrew's
+# Python, so cleaning those (or `brew upgrade` dropping a Python version) can't break it.
 set -eu
 LABEL="io.github.polamatvalls91.vision-ocr-server"
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 AGENT="$HOME/Library/LaunchAgents/$LABEL.plist"
 DAEMON="/Library/LaunchDaemons/$LABEL.plist"
 LOG="$HOME/Library/Logs/vision-ocr-server.log"
+APP="${VISION_OCR_HOME:-$HOME/Library/vision-ocr-server}"
 MODE=agent
 if [ "${1:-}" = "--daemon" ]; then MODE=daemon; shift; fi
 
 command -v uv >/dev/null || { echo "uv is required: https://docs.astral.sh/uv/" >&2; exit 1; }
-uv tool install --force --quiet "$REPO"
-BIN="$(uv tool dir --bin)/vision-ocr-server"
-mkdir -p "$(dirname "$AGENT")" "$(dirname "$LOG")"
+mkdir -p "$APP" "$(dirname "$AGENT")" "$(dirname "$LOG")"
+UV_TOOL_DIR="$APP/tools" UV_TOOL_BIN_DIR="$APP/bin" UV_PYTHON_INSTALL_DIR="$APP/python" \
+  uv tool install --force --quiet --managed-python "$REPO"
+BIN="$APP/bin/vision-ocr-server"
+# Fail here, before touching the running service, if the install doesn't actually run.
+"$BIN" --help >/dev/null || { echo "installed $BIN does not run" >&2; exit 1; }
+
+# bootout returns before launchd has fully removed the job; bootstrapping too early fails with
+# "Bootstrap failed: 5: Input/output error". Wait (up to 10 s) until it's gone.
+wait_gone() {
+  for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    $1 launchctl print "$2" >/dev/null 2>&1 || return 0
+    sleep 0.5
+  done
+}
 
 xml() { printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'; }
 
@@ -63,6 +81,7 @@ if [ "$MODE" = daemon ]; then
   launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
   rm -f "$AGENT"
   sudo launchctl bootout "system/$LABEL" 2>/dev/null || true
+  wait_gone sudo "system/$LABEL"
   sudo install -o root -g wheel -m 600 "$TMP" "$DAEMON"
   rm -f "$TMP"
   sudo launchctl bootstrap system "$DAEMON"
@@ -76,6 +95,7 @@ else
   plist "$@" > "$AGENT"
   chmod 600 "$AGENT"
   launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
+  wait_gone "" "gui/$(id -u)/$LABEL"
   launchctl bootstrap "gui/$(id -u)" "$AGENT"
   WHERE="$AGENT"
 fi
