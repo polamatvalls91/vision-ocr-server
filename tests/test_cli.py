@@ -38,6 +38,9 @@ def test_options_reach_the_server(served, monkeypatch):
     cli.main(["--languages", "es-ES, en-US", "--dpi", "200", "--level", "fast", "--max-pages", "5"])
     assert (server.settings.languages, server.settings.dpi) == (["es-ES", "en-US"], 200)
     assert (server.settings.level, server.settings.max_pages) == ("fast", 5)
+    assert server.settings.correction is True
+    cli.main(["--no-correction"])
+    assert server.settings.correction is False
 
 
 def test_not_macos(served, monkeypatch):

@@ -29,7 +29,7 @@ def png() -> bytes:
 @pytest.fixture
 def client(monkeypatch):
     monkeypatch.delenv("VISION_OCR_TOKEN", raising=False)
-    monkeypatch.setattr(server, "recognize", lambda image: ONE_WORD)
+    monkeypatch.setattr(server, "recognize", lambda image, correction: ONE_WORD)
     return TestClient(server.app)
 
 
@@ -48,9 +48,20 @@ def test_an_image_is_one_page(client):
 
 def test_long_pdfs_keep_the_first_pages_and_the_last(client, monkeypatch):
     seen = []
-    monkeypatch.setattr(server, "recognize", lambda image: seen.append(image) or [])
+    monkeypatch.setattr(server, "recognize", lambda image, correction: seen.append(image) or [])
     client.post("/ocr", content=pdf(server.settings.max_pages + 5))
     assert len(seen) == server.settings.max_pages
+
+
+@pytest.mark.parametrize(("default", "query", "expected"), [
+    (True, "", True), (False, "", False), (True, "?correction=false", False), (False, "?correction=true", True),
+])
+def test_correction_follows_the_server_unless_the_request_says(client, monkeypatch, default, query, expected):
+    seen = []
+    monkeypatch.setattr(server, "settings", server.Settings(correction=default))
+    monkeypatch.setattr(server, "recognize", lambda image, correction: seen.append(correction) or [])
+    assert client.post(f"/ocr{query}", content=pdf(2)).status_code == 200
+    assert seen == [expected, expected]
 
 
 @pytest.mark.parametrize("body", [b"hello", b"%PDF-broken"])
@@ -75,3 +86,11 @@ def test_real_apple_vision_reads_a_rendered_pdf(monkeypatch):
     image.save(buffer, format="PDF", resolution=150)
     answer = TestClient(server.app).post("/ocr", content=buffer.getvalue()).json()
     assert "138,47" in answer["pages"][0]
+
+
+@pytest.mark.skipif(sys.platform != "darwin", reason="Apple Vision is macOS only")
+@pytest.mark.parametrize("correction", [True, False])
+def test_real_apple_vision_with_and_without_correction(correction):
+    image = Image.new("RGB", (1200, 300), "white")
+    ImageDraw.Draw(image).text((50, 100), "INVOICE 2026-0042", fill="black", font=ImageFont.load_default(size=60))
+    assert "2026-0042" in " ".join(text for text, _, _ in server.recognize(image, correction))

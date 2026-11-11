@@ -1,4 +1,4 @@
-"""vision-ocr-server [--host 127.0.0.1] [--port 11500] [--languages es-ES,en-US] [--dpi 300] [--level accurate]"""
+"""vision-ocr-server [--host 127.0.0.1] [--port 11500] [--languages es-ES,en-US] [--dpi 300] [--level accurate] [--no-correction]"""
 import argparse
 import ipaddress
 import os
@@ -27,6 +27,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--dpi", type=int, default=300, help="PDF render resolution")
     parser.add_argument("--max-pages", type=int, default=20)
     parser.add_argument("--level", choices=["accurate", "fast"], default="accurate")
+    parser.add_argument("--no-correction", dest="correction", action="store_false",
+                        help="turn off Vision's language correction (keeps codes, IDs and amounts as printed)")
     parser.add_argument("--version", action="version", version=__version__)
     args = parser.parse_args(argv)
 
@@ -38,6 +40,7 @@ def main(argv: list[str] | None = None) -> None:
               file=sys.stderr)
 
     settings.dpi, settings.max_pages, settings.level = args.dpi, args.max_pages, args.level
+    settings.correction = args.correction
     settings.languages = [lang.strip() for lang in args.languages.split(",") if lang.strip()]
     uvicorn.run(app, host=args.host, port=args.port)
 

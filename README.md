@@ -14,7 +14,7 @@ curl --data-binary @invoice.pdf http://my-mac.local:11500/ocr
 
 ```json
 {"pages": ["ACME SUPPLIES, SL\nInvoice 16645 ...\nTOTAL 138,47"], "engine": "apple-vision",
- "version": "0.1.3", "seconds": 1.12}
+ "version": "0.1.4", "seconds": 1.12}
 ```
 
 ---
@@ -56,7 +56,7 @@ small enough to read in five minutes.
 ## Run it
 
 ```sh
-uv tool install git+https://github.com/polamatvalls91/vision-ocr-server@v0.1.3
+uv tool install git+https://github.com/polamatvalls91/vision-ocr-server@v0.1.4
 vision-ocr-server                                    # localhost only, port 11500
 vision-ocr-server --host 0.0.0.0 --languages es-ES,en-US   # your LAN, Spanish first
 ```
@@ -67,6 +67,7 @@ vision-ocr-server --host 0.0.0.0 --languages es-ES,en-US   # your LAN, Spanish f
 | `--port` | `11500` | |
 | `--languages` | `en-US` | comma-separated, in order of preference (`es-ES`, `fr-FR`, `de-DE`, `zh-Hans`…) |
 | `--level` | `accurate` | `fast` trades quality for speed |
+| `--no-correction` | correction on | turn off Vision's language correction, which "fixes" words against a dictionary. Off keeps codes, IDs, amounts and names exactly as printed |
 | `--dpi` | `300` | PDF render resolution |
 | `--max-pages` | `20` | longer PDFs: the first 19 pages and the last |
 | `VISION_OCR_TOKEN` (env) | unset | optional bearer token, see the warning above |
@@ -75,8 +76,8 @@ vision-ocr-server --host 0.0.0.0 --languages es-ES,en-US   # your LAN, Spanish f
 
 | | |
 |---|---|
-| `GET /health` | `{"ok": true, "engine": "apple-vision", "version": "0.1.3"}` |
-| `POST /ocr` | body: the raw file (PDF, PNG, JPEG, TIFF, HEIC…). Returns `pages`: one string per page, lines top to bottom, words left to right. `422` if it's neither a PDF nor an image, `401` on a bad token. |
+| `GET /health` | `{"ok": true, "engine": "apple-vision", "version": "0.1.4"}` |
+| `POST /ocr` | body: the raw file (PDF, PNG, JPEG, TIFF, HEIC…). Returns `pages`: one string per page, lines top to bottom, words left to right. `422` if it's neither a PDF nor an image, `401` on a bad token. `?correction=false` (or `true`) overrides `--no-correction` for that request. |
 
 From Python:
 
